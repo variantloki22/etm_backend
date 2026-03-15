@@ -51,6 +51,9 @@ class TicketTransactionViewSet(viewsets.ViewSet):
         }
         
         
+        result = collection.insert_one(document)
+        document['_id'] = str(result.inserted_id)
+        
         return Response(document, status=status.HTTP_201_CREATED)
 
     @action(detail=False, methods=['get'], url_path='crowd/(?P<route_name>[^/.]+)')
