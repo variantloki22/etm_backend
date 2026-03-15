@@ -35,7 +35,7 @@ class TicketTransactionViewSet(viewsets.ViewSet):
         data = request.data
         
         # Validate minimal requirements
-        required_fields = ['category', 'ticket_count', 'latitude', 'longitude', 'route']
+        required_fields = ['category', 'ticket_count', 'latitude', 'longitude', 'route', 'from_location', 'to_location']
         for field in required_fields:
             if field not in data:
                 return Response({"error": f"Missing field: {field}"}, status=status.HTTP_400_BAD_REQUEST)
@@ -46,6 +46,8 @@ class TicketTransactionViewSet(viewsets.ViewSet):
             "latitude": float(data['latitude']),
             "longitude": float(data['longitude']),
             "route": data['route'],
+            "from_location": data['from_location'],
+            "to_location": data['to_location'],
             "timestamp": data.get('timestamp', datetime.datetime.utcnow().isoformat()),
             "created_at": datetime.datetime.utcnow().isoformat()
         }
