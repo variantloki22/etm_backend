@@ -7,8 +7,9 @@ from pymongo import MongoClient
 import datetime
 from django.utils import timezone
 
-# We don't use the Django ORM for TicketTransaction anymore because djongo was problematic
-# We will use PyMongo directly in the views.
+# Global MongoDB client for connection pooling
+mongo_client = MongoClient(settings.MONGO_URI, maxPoolSize=50, connectTimeoutMS=5000)
+db = mongo_client[settings.MONGO_DB_NAME]
 
 class TicketTransactionViewSet(viewsets.ViewSet):
     """
@@ -17,8 +18,6 @@ class TicketTransactionViewSet(viewsets.ViewSet):
     permission_classes = [permissions.AllowAny]
 
     def get_collection(self):
-        client = MongoClient(settings.MONGO_URI)
-        db = client[settings.MONGO_DB_NAME]
         return db['ticket_transactions']
 
     def list(self, request):
@@ -102,8 +101,7 @@ class BusRouteViewSet(viewsets.ViewSet):
     permission_classes = [permissions.AllowAny]
 
     def get_db(self):
-        client = MongoClient(settings.MONGO_URI)
-        return client[settings.MONGO_DB_NAME]
+        return db
 
     def list(self, request):
         """Lists all 3 main routes"""
