@@ -11,6 +11,10 @@ https://docs.djangoproject.com/en/6.0/ref/settings/
 """
 
 from pathlib import Path
+import os
+from dotenv import load_dotenv
+
+load_dotenv() # Load from .env if present locally
 
 # Build paths inside the project like this: BASE_DIR / 'subdir'.
 BASE_DIR = Path(__file__).resolve().parent.parent
@@ -25,7 +29,7 @@ SECRET_KEY = 'django-insecure-es30ec493&_fr3ogv^tog)tkng28i90elc%#&j_3(i5f2(-$1$
 # SECURITY WARNING: don't run with debug turned on in production!
 DEBUG = True
 
-ALLOWED_HOSTS = ['*']
+ALLOWED_HOSTS = ['etm-backend-vh5e.onrender.com', 'localhost', '127.0.0.1', '*']
 
 
 # Application definition
@@ -89,8 +93,8 @@ DATABASES = {
 }
 
 # Custom MongoDB configuration for PyMongo
-MONGO_URI = 'mongodb+srv://akashc6206_db_user:0Qs42jI4oLUcgfXe@nammaroute.f6dqq1j.mongodb.net/'
-MONGO_DB_NAME = 'namma_etm_db'
+MONGO_URI = os.environ.get('MONGO_URI', 'mongodb+srv://akashc6206_db_user:0Qs42jI4oLUcgfXe@nammaroute.f6dqq1j.mongodb.net/')
+MONGO_DB_NAME = os.environ.get('MONGO_DB_NAME', 'namma_etm_db')
 
 
 # Password validation
