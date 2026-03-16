@@ -91,7 +91,6 @@ DATABASES = {
 # Custom MongoDB configuration for PyMongo
 MONGO_URI = 'mongodb+srv://akashc6206_db_user:0Qs42jI4oLUcgfXe@nammaroute.f6dqq1j.mongodb.net/'
 MONGO_DB_NAME = 'namma_etm_db'
-MONGO_TRACKING_DB_NAME = 'namma_bus_tracking'
 
 
 # Password validation

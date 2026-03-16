@@ -94,83 +94,61 @@ class TicketTransactionViewSet(viewsets.ViewSet):
             "checked_at": datetime.datetime.utcnow().isoformat()
         })
 
-class BusTrackingViewSet(viewsets.ViewSet):
-    """
-    API endpoint for tracking multiple buses per route.
-    Uses a separate database 'namma_bus_tracking'.
-    """
+class RouteViewSet(viewsets.ViewSet):
     permission_classes = [permissions.AllowAny]
 
     def get_collection(self):
         client = MongoClient(settings.MONGO_URI)
-        db = client[settings.MONGO_TRACKING_DB_NAME]
-        return db['active_buses']
-
-    def _initialize_buses_if_needed(self, collection):
-        if collection.count_documents({}) == 0:
-            routes = ['335E', '201A', '500C', 'G3', 'V-335E']
-            buses = []
-            for route in routes:
-                for i in range(1, 4):
-                    buses.append({
-                        "bus_id": f"{route}-{i}",
-                        "route": route,
-                        "instance": i,
-                        "latitude": 12.9716, # Default Bangalore
-                        "longitude": 77.5946,
-                        "is_tracked": False,
-                        "last_updated": datetime.datetime.utcnow().isoformat(),
-                        "passenger_count": 0
-                    })
-            collection.insert_many(buses)
+        db = client[settings.MONGO_DB_NAME]
+        return db['app_routes']
 
     def list(self, request):
         collection = self.get_collection()
-        self._initialize_buses_if_needed(collection)
+        route_type = request.query_params.get('type')
+        query = {}
+        if route_type:
+            query['type'] = route_type
         
-        buses = list(collection.find())
+        routes = list(collection.find(query))
+        for r in routes:
+            r['_id'] = str(r['_id'])
+        return Response(routes)
+
+class BusViewSet(viewsets.ViewSet):
+    permission_classes = [permissions.AllowAny]
+
+    def get_collection(self):
+        client = MongoClient(settings.MONGO_URI)
+        db = client[settings.MONGO_DB_NAME]
+        return db['app_buses']
+
+    def list(self, request):
+        collection = self.get_collection()
+        route_name = request.query_params.get('route_name')
+        query = {}
+        if route_name:
+            query['route_name'] = route_name
+        
+        buses = list(collection.find(query))
         for b in buses:
             b['_id'] = str(b['_id'])
         return Response(buses)
 
-    @action(detail=False, methods=['post'], url_path='update-location')
-    def update_location(self, request):
-        bus_id = request.data.get('bus_id')
-        lat = request.data.get('latitude')
-        lng = request.data.get('longitude')
-        
-        if not bus_id or lat is None or lng is None:
-            return Response({"error": "Missing bus_id, latitude or longitude"}, status=status.HTTP_400_BAD_REQUEST)
-            
+    @action(detail=True, methods=['post'], url_path='track')
+    def track_me(self, request, pk=None):
+        """
+        Updates the current location of the user/bus for better tracking.
+        'pk' here would be the bus_id.
+        """
         collection = self.get_collection()
-        result = collection.update_one(
-            {"bus_id": bus_id},
-            {"$set": {
-                "latitude": float(lat),
-                "longitude": float(lng),
-                "last_updated": datetime.datetime.utcnow().isoformat(),
-                "is_tracked": True
-            }}
-        )
+        lat = request.data.get('lat')
+        lng = request.data.get('lng')
         
-        if result.matched_count == 0:
-            return Response({"error": "Bus not found"}, status=status.HTTP_404_NOT_FOUND)
-            
-        return Response({"status": "success"})
+        if lat is None or lng is None:
+            return Response({"error": "Latitude and Longitude required"}, status=400)
 
-    @action(detail=False, methods=['post'], url_path='toggle-tracking')
-    def toggle_tracking(self, request):
-        bus_id = request.data.get('bus_id')
-        is_tracked = request.data.get('is_tracked', False)
-        
-        if not bus_id:
-            return Response({"error": "Missing bus_id"}, status=status.HTTP_400_BAD_REQUEST)
-            
-        collection = self.get_collection()
         collection.update_one(
-            {"bus_id": bus_id},
-            {"$set": {"is_tracked": is_tracked}}
+            {"bus_id": pk},
+            {"$set": {"current_location": {"lat": float(lat), "lng": float(lng)}, "last_update": datetime.datetime.utcnow().isoformat()}}
         )
-        
-        return Response({"status": "success", "is_tracked": is_tracked})
-
+        return Response({"status": "Location updated"})
