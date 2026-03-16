@@ -93,3 +93,53 @@ class TicketTransactionViewSet(viewsets.ViewSet):
             "window_hours": 2,
             "checked_at": datetime.datetime.utcnow().isoformat()
         })
+
+
+class BusRouteViewSet(viewsets.ViewSet):
+    """
+    API endpoint for Google Maps-like bus route information.
+    """
+    permission_classes = [permissions.AllowAny]
+
+    def get_db(self):
+        client = MongoClient(settings.MONGO_URI)
+        return client[settings.MONGO_DB_NAME]
+
+    def list(self, request):
+        """Lists all 3 main routes"""
+        db = self.get_db()
+        routes = list(db.bus_routes.find({}, {'_id': 0}))
+        return Response(routes)
+
+    @action(detail=True, methods=['get'])
+    def buses(self, request, pk=None):
+        """Lists buses for a specific route (pk is route_id)"""
+        db = self.get_db()
+        buses = list(db.buses.find({"route_id": pk}, {'_id': 0}))
+        return Response(buses)
+
+    @action(detail=False, methods=['get'], url_path='stops/(?P<route_id>[^/.]+)')
+    def stops(self, request, route_id=None):
+        """Lists stops and timings for a specific route"""
+        db = self.get_db()
+        stops = list(db.bus_stops.find({"route_id": route_id}, {'_id': 0}).sort("order", 1))
+        return Response(stops)
+
+    @action(detail=False, methods=['post'], url_path='track')
+    def track_commuter(self, request):
+        """Receives live location from commuters toggled 'Inside a Bus'"""
+        db = self.get_db()
+        data = request.data
+        
+        # We store this in a TTL collection or just a log
+        document = {
+            "bus_id": data.get('bus_id'),
+            "route_id": data.get('route_id'),
+            "latitude": float(data.get('latitude', 0)),
+            "longitude": float(data.get('longitude', 0)),
+            "timestamp": datetime.datetime.utcnow().isoformat(),
+            "user_id": data.get('user_id', 'anonymous')
+        }
+        
+        db.commuter_locations.insert_one(document)
+        return Response({"status": "tracking_active"}, status=status.HTTP_201_CREATED)
