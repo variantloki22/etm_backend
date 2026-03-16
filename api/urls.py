@@ -4,6 +4,7 @@ from . import views
 
 router = DefaultRouter()
 router.register(r'transactions', views.TicketTransactionViewSet, basename='transaction')
+router.register(r'buses', views.BusTrackingViewSet, basename='bus')
 
 urlpatterns = [
     path('', include(router.urls)),
